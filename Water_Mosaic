@@ -1,0 +1,77 @@
+import arcpy
+from arcpy.sa import *
+from arcpy import env
+import os
+
+#Check license
+arcpy.CheckOutExtension("Spatial")
+
+####Method in os
+
+#Judge whether exist a file
+def IfFile(Filename):
+    if os.path.isfile(Filename):
+        return True
+    else:
+        return False
+    
+#Delete existed file
+def DelExistedFile(Filename):
+    if os.path.isfile(Filename):
+        os.remove(Filename)
+        
+#Make empty folder
+def MakeDir(outDir):
+    if not os.path.exists(outDir):
+        os.makedirs(outDir)
+        
+####Method in ArcPy
+#Extract By Mask
+def RasterClipSave(inRaster, inMaskData,outRaster):
+    outExtractByMask = ExtractByMask(inRaster, inMaskData)
+    outExtractByMask.save(outRaster)
+
+def RasterMosaic(inRaster,outLocation,outName):
+    arcpy.MosaicToNewRaster_management(inRaster,outLocation, outName, "",\
+                                       "", "", "1", "LAST","FIRST")
+
+###Local method
+#Name generation using horizontal and vertical number
+def NameGeneration(year,h,v):
+    DirName = WaterDir + '\\'+ 'h' + str(h) +'v' + str(v)
+    FileName = 'Freq_usgs578_cfmask01_TShadow_band0_' + str(year) + '_0' + str(h) + '_0' + str(v) + '.tif'
+    return DirName +'\\'+  FileName
+
+###############################################Change Environment#######################
+WaterDir = r'E:\FD\Water_Mapping'
+OutDir = r"E:\FD\GuangXi"
+GX = r'E:\FD\GuangXi\guangxi\Guangxi.shp'
+
+##################################################Change blocks#########################
+Block = [(105,25),(110,25),(105,20),(110,20)]
+
+#List everyyear
+for year in xrange(2014,2017):#####Change year range
+    print year
+    #Set empty list
+    ImageList = []
+    #Get rasterName
+    for ranks in Block:
+        h = ranks[0]
+        v = ranks[1]
+        RasterName = NameGeneration(year,h,v)
+        #Append existed raster
+        if os.path.isfile(RasterName):
+            ImageList.append(RasterName)
+    print len(ImageList)
+    #Make out folder
+    outDir = OutDir + '\\'+str(year)
+    if not os.path.exists(outDir):
+        os.makedirs(outDir)
+    arcpy.env.workspace = outDir
+    outname = 'GX_' + str(year) + '.tif'##Change outname of mosaic File
+    #Delete existed outRaster
+    if os.path.isfile(outname):
+        os.remove(outname)
+    #Mosaic
+    RasterMosaic(ImageList,outDir, outname)
